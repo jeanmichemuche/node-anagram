@@ -1,4 +1,5 @@
 ### Node-Anagram Assignment
+[![Build Status](https://travis-ci.org/jeanmichemuche/node-anagram.svg?branch=master)](https://travis-ci.org/jeanmichemuche/node-anagram)
 
 #### Description
 
