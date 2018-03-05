@@ -46,12 +46,20 @@ You can tackle as many bonus points as want/can, they are not mandatory but welc
 * Add support to list, add and remove words from the supported dictionaries.
 * Add support for phrases, not just single words. Ie: 'rail safety' -> ['fairy tales'].
 
-#### How to run
-
-`cd enterprise/node-anagram`
+#### How to run (locally)
 
 `nvm use` ( or install node 8.9 )
 
 `npm install`
 
 `npm start` ( or run directly via `node app.js` )
+
+Make sure you have Redis running.
+
+#### How to run (Docker containers)
+
+`docker build -t node-anagram .`
+
+`docker run --name redis -p 6379:6379 -d redis`
+
+`docker run --name node-anagram --link redis -p 3001:3001 --env REDIS_URL=redis://redis:6379 node-anagram`
