@@ -5,6 +5,8 @@ const combinations = require('combinations')
 const app = express();
 const config = require('./config/index');
 const dictionagram = require('./dictionagram');
+const esj = require('express-stream-json');
+const { Writable } = require('stream');
 
 app.use(bodyParser.json());
 app.get('/ping', (req, res) => res.send('pong'));
@@ -106,6 +108,105 @@ app.get('/compare', (req, res) => {
   }
 
   res.send(isAnagram(first_word, second_word));
+});
+
+/**
+ * @api {get} /phrases Find Anagrams for phrases composed of two words
+ * @apiName FindPhraseAnagrams
+ * @apiDescription 
+ * @apiGroup Anagram
+ *
+ * @apiParam (query) {String} phrase
+ *
+ * @apiExample {curl} Example usage:
+ *     curl -X GET -H "Content-Type: application/json" -d '{"phrase": "rail safety"}' http://localhost:3001/phrase
+ *
+ * @apiSuccessExample {json} Success-Response:
+ *   HTTP/1.1 200 OK
+ *   [
+ *      "fairy tales"
+ *   ]
+ */
+const THRESHOLD = 3;
+app.get('/phrase', (req, res, next) => {
+
+  var given_phrase = req.body.phrase;
+  if (given_phrase === undefined) {
+    res.status(400)
+       .send({error: 'Invalid query'});
+    return;
+  }
+  if (/^[a-zA-Z]+\s{1}[a-zA-Z]+$/.test(given_phrase) === false) {
+    res.status(400)
+       .send({error: 'Your word contains unexpected characters. Please type only 2 words separated by a space.'});
+    return;
+  }
+
+  var anagrams = [];
+
+  var givenPhraseCompressed = given_phrase.toLowerCase().trim().replace(' ', '');
+  var givenPhraseLettersOnly = givenPhraseCompressed.split('');
+
+  var allCombinations = combinations(givenPhraseLettersOnly, THRESHOLD);
+  for (var i = 0; i < allCombinations.length; i++) {
+    // Our first part will be the current combination
+    var combination = allCombinations[i];
+
+    // Our second part will be the remaining characters of the given phrase (ie. given phrase minus combination)
+    var remaining_letters = givenPhraseCompressed;
+    for (var j = 0; j < combination.length; j++) {
+      remaining_letters = remaining_letters.replace(combination[j], '');
+    }
+    // If equals of below threshold, skip
+    if (remaining_letters.length < THRESHOLD) {
+      continue;
+    }
+    console.log(remaining_letters);
+
+    var firstPart = null;
+    var secondPart = null;
+
+    // var combinationAsString = combination.join('');
+    // for (var j = 0; j < wordList.length; j++) {
+    //   var word = wordList[j];
+    //   if(isAnagram(combinationAsString, word)) {
+    //     firstPart = word;
+    //     break;
+    //   }
+    // }
+    var combinationStr = combination.join('');
+    dictionagram.find_anagrams(combinationStr, firstPartAnagrams => {
+      if (typeof firstPartAnagrams === 'undefined' || firstPartAnagrams.length === 0) {
+          return;
+      }
+      // console.dir(firstPartAnagrams);
+      for (var firstPartAnagram in firstPartAnagrams) {
+        dictionagram.find_anagrams(remaining_letters, secondPartAnagrams => {
+          if (typeof secondPartAnagrams === 'undefined' || secondPartAnagrams.length === 0) {
+              return;
+          }
+          console.dir(secondPartAnagrams);
+          for (var secondPartAnagram in secondPartAnagrams) {
+            // stream.pipe(firstPartAnagram + ' ' + secondPartAnagrams);
+            res.status(200).end();
+          }
+        })
+      }
+    })
+    // for (var j = 0; j < wordList.length; j++) {
+    //   var word = wordList[j];
+    //   if(isAnagram(remaining_letters, word)) {
+    //     secondPart = word;
+    //     break;
+    //   }
+    // }
+    // if (firstPart && secondPart) {
+    //   anagrams.push(firstPart + ' ' + secondPart);
+    // }
+  }
+
+  // res.send(anagrams);
+  // next();
 });
 
 app.listen(config.port);
