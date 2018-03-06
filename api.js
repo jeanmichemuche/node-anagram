@@ -5,8 +5,6 @@ const combinations = require('combinations')
 const app = express();
 const config = require('./config/index');
 const dictionagram = require('./dictionagram');
-const esj = require('express-stream-json');
-const { Writable } = require('stream');
 
 app.use(bodyParser.json());
 app.get('/ping', (req, res) => res.send('pong'));
@@ -153,60 +151,34 @@ app.get('/phrase', (req, res, next) => {
     var combination = allCombinations[i];
 
     // Our second part will be the remaining characters of the given phrase (ie. given phrase minus combination)
-    var remaining_letters = givenPhraseCompressed;
     for (var j = 0; j < combination.length; j++) {
-      remaining_letters = remaining_letters.replace(combination[j], '');
+      givenPhraseCompressed = givenPhraseCompressed.replace(combination[j], '');
     }
     // If equals of below threshold, skip
-    if (remaining_letters.length < THRESHOLD) {
+    if (givenPhraseCompressed.length < THRESHOLD) {
       continue;
     }
-    console.log(remaining_letters);
+    const remaining_letters = givenPhraseCompressed;
 
-    var firstPart = null;
-    var secondPart = null;
-
-    // var combinationAsString = combination.join('');
-    // for (var j = 0; j < wordList.length; j++) {
-    //   var word = wordList[j];
-    //   if(isAnagram(combinationAsString, word)) {
-    //     firstPart = word;
-    //     break;
-    //   }
-    // }
     var combinationStr = combination.join('');
     dictionagram.find_anagrams(combinationStr, firstPartAnagrams => {
       if (typeof firstPartAnagrams === 'undefined' || firstPartAnagrams.length === 0) {
           return;
       }
-      // console.dir(firstPartAnagrams);
       for (var firstPartAnagram in firstPartAnagrams) {
         dictionagram.find_anagrams(remaining_letters, secondPartAnagrams => {
           if (typeof secondPartAnagrams === 'undefined' || secondPartAnagrams.length === 0) {
               return;
           }
-          console.dir(secondPartAnagrams);
           for (var secondPartAnagram in secondPartAnagrams) {
-            // stream.pipe(firstPartAnagram + ' ' + secondPartAnagrams);
-            res.status(200).end();
+            anagrams.push(firstPartAnagram + ' ' + secondPartAnagrams);
           }
         })
       }
     })
-    // for (var j = 0; j < wordList.length; j++) {
-    //   var word = wordList[j];
-    //   if(isAnagram(remaining_letters, word)) {
-    //     secondPart = word;
-    //     break;
-    //   }
-    // }
-    // if (firstPart && secondPart) {
-    //   anagrams.push(firstPart + ' ' + secondPart);
-    // }
   }
-
-  // res.send(anagrams);
-  // next();
+  // mmmm
+  res.send([]]);
 });
 
 app.listen(config.port);
